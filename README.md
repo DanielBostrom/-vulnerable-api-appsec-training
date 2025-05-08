@@ -45,12 +45,16 @@ This project is intended for hands-on exploration of application security concep
 ## GET STARTED ##                                           
 ##############################################################
 
+## STEP 1 ##
+INSTALL DOCKER
+
+## STEP 2 ##
 ```bash
 git clone https://github.com/DanielBostrom/vulnerable-api-appsec-training.git
 cd vulnerable-api-appsec-training
 docker-compose up
 ```
-
+## STEP 3 ##
 Once running, the API will be available at:  
 ➡️ **http://localhost:8000**
 
