@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+venv/
+vulnerable_app.db
+.vscode/
+.env

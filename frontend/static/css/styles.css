@@ -1,0 +1,175 @@
+/* 
+ * ShopSmart - Main Stylesheet
+ * A realistic e-commerce platform
+ */
+
+/* Core Layout & Typography */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: #333;
+    line-height: 1.6;
+    padding-bottom: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container {
+    max-width: 1200px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+}
+
+/* Navigation */
+.navbar {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+/* Development Warning - Only shows in dev/test environments */
+.dev-warning {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.social-icons a:hover {
+    opacity: 0.8;
+}
+
+/* Product Cards */
+.product-card {
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.price {
+    font-weight: 700;
+    color: #dc3545;
+    font-size: 1.1rem;
+}
+
+/* Authentication Container */
+.auth-container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    margin-bottom: 2rem;
+}
+
+/* Result Containers */
+.result-success {
+    padding: 1rem;
+    background-color: #d1e7dd;
+    border-radius: 4px;
+    color: #0f5132;
+    margin-top: 1rem;
+}
+
+.result-error {
+    padding: 1rem;
+    background-color: #f8d7da;
+    border-radius: 4px;
+    color: #842029;
+    margin-top: 1rem;
+}
+
+/* Pre-formatted text blocks */
+pre {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+/* Token Display */
+.token-display {
+    word-break: break-all;
+    background-color: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid #ced4da;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+/* Admin Dashboard */
+.list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* Animation for vulnerability demonstration - subtle */
+@keyframes vulnerability-flash {
+    0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.2); }
+    70% { box-shadow: 0 0 0 5px rgba(220, 53, 69, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+}
+
+.vulnerability-triggered {
+    animation: vulnerability-flash 1s 1;
+}
+
+/* Profile Information */
+.profile-item {
+    margin-bottom: 1.5rem;
+}
+
+.profile-item label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+/* Jumbotron styling (replacement for Bootstrap 4's jumbotron) */
+.jumbotron {
+    padding: 2rem;
+    border-radius: 0.5rem;
+}
+
+/* Hidden info classes */
+.dev-info {
+    display: none;
+}
+
+/* Special console styling - this is for our special console.log replacement, to be defined in JS */
+.highlight-vuln {
+    color: transparent;
+    user-select: none;
+}
+
+/* Add a special class that can only be seen when inspecting elements */
+.inspect-only {
+    display: none;
+    opacity: 0;
+    position: absolute;
+    pointer-events: none;
+}
+
+/* Add special comments in CSS that might hint at vulnerabilities if someone inspects CSS */
+/*
+ * TODO: Implement proper authentication with hashed passwords
+ * FIXME: JWT secret should not be hardcoded, needs to be moved to env vars
+ * NOTE: Admin check is currently bypassed for testing - remember to enable in prod
+ */
