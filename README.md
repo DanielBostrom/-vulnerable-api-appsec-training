@@ -1,14 +1,12 @@
 
-##############################################################
 #  VULNERABLE API – FOR SECURITY RESEARCH & EDUCATIONAL USE  #
-##############################################################
+
 An intentionally vulnerable REST API for AppSec training, pentesting practice, and educational use.
 Use this project in **isolated lab environments** only.
 
 
-//////////////////////////////////////////////////////////////
 ## VULNRABILITIES INCLUDED ##
-/////////////////////////////////////////////////////////////
+
 This API simulates a range of common web flaws:
 - **Insecure authentication**
 - **Brute-forceable login**
@@ -24,17 +22,17 @@ This API simulates a range of common web flaws:
 Each endpoint is built to demonstrate one or more of these vulnerabilities.
 
 
-//////////////////////////////////////////////////////////////
+
 ⚠️ DISCLAIMER ⚠️
-//////////////////////////////////////////////////////////////
+
 This project is for educational use only. Do not use it on systems you don't own or have permission to test.
 The author takes **no responsibility for misuse or damage** caused by this project.
 
-🚫This application is intentionally misconfigured to demonstrate vulnerabilities. No real secrets or production credentials are used. 🚫
+🚫This application is intentionally misconfigured to demonstrate vulnerabilities.
+No real secrets or production credentials are used. 🚫
 
-##############################################################
+
 ## USE CASES ##                                           
-##############################################################
 
 This project is intended for hands-on exploration of application security concepts, including:
 
