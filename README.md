@@ -19,16 +19,8 @@ This API simulates a range of common web flaws:
 - **Insecure deserialization**
 - **Improper input validation**
 - **Reflected & stored XSS**
-- **Security misconfigurations**- **Insecure authentication**
-- **Brute-forceable login**
-- **Access control issues (IDOR)**
-- **Injection flaws**
-- **Exposed sensitive data**
-- **Broken session/token handling**
-- **Insecure deserialization**
-- **Improper input validation**
-- **Reflected & stored XSS**
 - **Security misconfigurations**
+
 Each endpoint is built to demonstrate one or more of these vulnerabilities.
 
 
@@ -38,7 +30,7 @@ Each endpoint is built to demonstrate one or more of these vulnerabilities.
 This project is for educational use only. Do not use it on systems you don't own or have permission to test.
 The author takes **no responsibility for misuse or damage** caused by this project.
 
-❗Intentionally hardcoded secrets and insecure config for AppSec training❗
+🚫This application is intentionally misconfigured to demonstrate vulnerabilities. No real secrets or production credentials are used. 🚫
 
 ##############################################################
 ## USE CASES ##                                           
