@@ -1,0 +1,253 @@
+
+## SECURE VERSION - CRYPTOGRAPHICAL FAILURES AND AUTHENTICATIONS FAILURES (A02:2021) ##
+import bcrypt
+from fastapi import HTTPException
+
+@app.post("/register", tags=["Users"])
+def register_user(username: str, password: str, email: str, db: Session = Depends(get_db)):
+    """Register a new user - SECURE VERSION"""
+    
+    # Check if the username already exists
+    existing_user = db.query(User).filter(User.username == username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
+
+    # Hash the password before storing it
+    hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+
+    # Store the hashed password
+    new_user = User(username=username, password=hashed_password.decode('utf-8'), email=email)
+    db.add(new_user)
+    db.commit()
+
+    return {"message": "User created securely", "user_id": new_user.id}
+
+
+
+
+## SECURE VERSION - SQL-INJECTION (A03:2021) ##
+@app.get("/posts/search/", tags=["Posts"])
+def search_posts(query: str, db: Session = Depends(get_db)):
+    """Search for posts - SAFE VERSION USING PARAMETERIZED QUERIES"""
+    # Prevent SQL Injection by using parametizezed parameters
+    conn = sqlite3.connect("./vulnerable_app.db")
+    cursor = conn.cursor()
+
+    sql_query = "SELECT * FROM posts WHERE title LIKE ? OR content LIKE ?"
+    search_term = f"%{query}%"
+
+    # User input passed as separate parameters, not inside SQL string. This keeps data and code seperate
+    cursor.execute(sql_query, (search_term, search_term))
+
+    posts = cursor.fetchall()
+    conn.close()
+
+    return [{"id": post[0], "title": post[1], "content": post[2], "user_id": post[3]} for post in posts]
+
+
+
+
+## SECURE VERSION - BROKEN ACCESS CONTROL (A01:2021) ##
+@app.get("/admin/users/", tags=["Admin"])
+def get_all_users(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+    """
+    Get all users - SECURE VERSION WITH ROLE CHECK
+    """
+    user = verify_user(credentials, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    # Check if the user is an admin before proceeding
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access denied – admin only")
+
+    users = db.query(User).all()
+    return [{"id": u.id, "username": u.username, "email": u.email, "role": u.role} for u in users]
+
+
+## SECURE VERSION - VULNERABLE AND OUTDATED COMPONENTS (A01:2021) ##
+
+@app.get("/system/check")
+def system_check(hostname: str):
+    """
+    Check system status - SECURE VERSION
+    """
+    allowed_hosts = ["127.0.0.1", "google.com"]
+    if hostname not in allowed_hosts:
+        raise HTTPException(status_code=400, detail="Hostname not allowed")
+
+    # Using list of args and shell=False
+    result = subprocess.run(["ping", "-c", "1", hostname], capture_output=True, text=True, shell=False)
+
+    return {"output": result.stdout}
+
+
+
+
+## SECURE VERSION - SERVER SIDE REQUEST FORGERY(SSRF) (A10:2021) ##
+
+@app.get("/fetch-resource/", tags=["External"])
+def fetch_external_resource(url: str):
+    import requests
+
+    # Use a DNS allowed list with trusted domains
+    allowed_domains = ["example.com", "api.example.org"]
+
+    # Validate and filter URLs before making requests
+    parsed = urlparse(url)
+    hostname = parsed.hostname
+
+    # Reject if the hostname is missing or not allowed
+    if not hostname or hostname not in allowed_domains:
+        raise HTTPException(status_code=400, detail="URL not allowed")
+
+    try:
+        # Safe request to a verified domain only
+        response = requests.get(url, timeout=5)
+
+        # Return the first 500 characters of the response
+        return {
+            "status": response.status_code,
+            "content": response.text[:500]
+        }
+    except Exception as e:
+        # Handle request errors gracefully
+        return {"error": str(e)}
+    
+
+
+## SECURE VERSION - INSECURE DESIGN (A04:2021)
+
+# Simulated temporary token storage (in real apps, use a database or cache)
+reset_tokens = {
+    "admin": {"token": "secure123", "expires": time.time() + 900}
+}
+@app.post("/password/reset", tags=["Users"])
+def reset_password(username: str, token: str, new_password: str):
+    # Verify that the token matches and is not expired
+    entry = reset_tokens.get(username)
+    if not entry or entry["token"] != token or time.time() > entry["expires"]:
+        raise HTTPException(status_code=403, detail="Invalid or expired token")
+
+    # Update password securely (in real use, also hash the password)
+    conn = sqlite3.connect("./vulnerable_app.db")
+    cursor = conn.cursor()
+    cursor.execute("UPDATE users SET password = ? WHERE username = ?", (new_password, username))
+    conn.commit()
+    conn.close()
+
+    return {"message": f"Password for {username} has been securely reset"}
+
+
+
+
+
+## 8. SECURE VERSION - AUTHENTICATION FAILURE (A07:2021) - 9. CRYPTOGRAPHIC FAILURES (A02:2021) 
+
+# In-memory login attempt store (for demo purposes)
+login_attempts = {}
+
+@app.post("/login", tags=["Authentication"])
+def login(credentials: HTTPBasicCredentials = Depends(security), request: Request, db: Session = Depends(get_db)):
+    ip = request.client.host
+    now = time()
+
+    # Track attempts per IP
+    attempts = login_attempts.get(ip, [])
+    # Keep only last 60 seconds
+    attempts = [t for t in attempts if now - t < 60]
+    
+    if len(attempts) >= 5:
+        return JSONResponse(status_code=429, content={"detail": "Too many login attempts, try again later"})
+
+    login_attempts[ip] = attempts + [now]
+
+    user = verify_user(credentials, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    token = create_jwt_token({"sub": user["username"], "role": user["role"]})
+    return {"access_token": token, "token_type": "bearer"}
+
+
+
+
+## SECURE VERSION - SECURITY MISCONFIGURATION ##
+router = APIRouter()
+
+# Code Reference (Secure) for /debug/config
+@router.get("/debug/config", tags=["Debug"])
+def get_server_config(credentials: HTTPBasicCredentials = Depends(security)):
+    """Show server configuration - PROTECTED VERSION"""
+
+    # Require authentication to access debug info
+    user = verify_user(credentials)
+    if not user or user["role"] != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    # In production, sensitive config should never be exposed
+    if ENVIRONMENT == "production":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Endpoint disabled in production")
+
+    # Return minimal config in dev, no secrets
+    config = {
+        "app_name": "Safe API (Debug)",
+        "debug_mode": True
+    }
+    return config
+
+
+
+## SECURE VERSION - SECURITY LOGGING AND MONITORING FAILURES (A09:2021)
+@app.get("/users/{user_id}", tags=["Users"])
+def get_user(user_id: int, credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
+    """Secure user info endpoint with auth, redacted data, and logging"""
+
+    # Require authentication
+    user = verify_user(credentials, db)
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Fetch requested user safely
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Log access to sensitive user data
+    logging.info(f"{user['username']} accessed user profile ID {user_id}")
+
+    # Return redacted info only (no password)
+    return {
+        "id": target_user.id,
+        "username": target_user.username,
+        "email": target_user.email,
+        "role": target_user.role  }
+
+
+## SECURE VERSION - SOFTWARE AND DATA INTEGRITY FAILURES (A08:2021) ##
+
+class UserInput(BaseModel):
+    username: str
+    password: str
+    email: EmailStr
+    role: str = "user"
+
+class ImportPayload(BaseModel):
+    users: List[UserInput]
+
+@app.post("/import/data", tags=["Data"])
+def import_data(payload: ImportPayload):
+    """Secure import with schema validation and safe insertion"""
+    conn = sqlite3.connect("./vulnerable_app.db")
+    cursor = conn.cursor()
+    
+    for user in payload.users:
+        # ✅ Parameterized query to prevent SQL injection
+        cursor.execute(
+            "INSERT INTO users (username, password, email, role) VALUES (?, ?, ?, ?)",
+            (user.username, user.password, user.email, user.role)
+        )
+    
+    conn.commit()
+    conn.close()
+    return {"message": "Data imported successfully", "items": len(payload.users)}
