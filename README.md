@@ -40,13 +40,19 @@ This project is intended for hands-on exploration of application security concep
 - Development and validation of custom security tools or scripts
 - Practicing identification and exploitation of common web vulnerabilities
 
+## 📄 DOCUMENTATION 📄 ##
+
+- [Explenation-code.txt](docs/Explenation-code.txt) – Secure version of each endpoint with code explanations.
+- [SmartShop-Code-Documentation.docx](docs/SmartShop-Code-Documentation.docx) – Detailed description of each vulnerability, how it can be exploited, and how to fix it.
+
 
 ##############################################################
 ## GET STARTED ##                                           
 ##############################################################
 
 ## STEP 1 ##
-INSTALL DOCKER
+Install docker
+Start Docker Desktop
 
 ## STEP 2 ##
 ```bash

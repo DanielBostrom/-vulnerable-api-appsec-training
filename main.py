@@ -148,7 +148,7 @@ async def get_home(request: Request):
     """Serves the web interface for the vulnerable API demonstration"""
     return templates.TemplateResponse("index.html", {"request": request})
 
-# 1. BROKEN ACCESS CONTROL (A01:2021)
+# BROKEN ACCESS CONTROL (A01:2021)
 @app.get("/admin/users/", tags=["Admin"])
 def get_all_users(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
     """Get all users - VULNERABLE TO BROKEN ACCESS CONTROL
@@ -158,16 +158,12 @@ def get_all_users(credentials: HTTPBasicCredentials = Depends(security), db: Ses
     user = verify_user(credentials, db)
     if not user:
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
     # VULNERABILITY: No check if the user is an admin
-    # A secure implementation would do something like:
-    # if user["role"] != "admin":
-    #     raise HTTPException(status_code=403, detail="Permission denied")
-    
+
     users = db.query(User).all()
     return [{"id": user.id, "username": user.username, "email": user.email, "role": user.role} for user in users]
 
-# 2. CRYPTOGRAPHIC FAILURES (A02:2021)
+# IDENTIFICATION AND AUTHENTICATION FAILURE / CRYPTOGRAPHIC FAILURE
 @app.post("/login", tags=["Authentication"])
 def login(credentials: HTTPBasicCredentials = Depends(security), db: Session = Depends(get_db)):
     """Log in and get a JWT token
@@ -185,15 +181,16 @@ def login(credentials: HTTPBasicCredentials = Depends(security), db: Session = D
     token = create_jwt_token({"sub": user["username"], "role": user["role"]})
     return {"access_token": token, "token_type": "bearer"}
 
-# 3. INJECTION (A03:2021)
+# SQLi INJECTION (A03:2021)
 @app.get("/posts/search/", tags=["Posts"])
 def search_posts(query: str, db: Session = Depends(get_db)):
     """Search for posts - VULNERABLE TO SQL INJECTION"""
     # VULNERABILITY: SQL Injection via direct string concatenation
     conn = sqlite3.connect("./vulnerable_app.db")
     cursor = conn.cursor()
-    # This is very insecure - user input should never be concatenated directly in SQL
+    # This is very insecure - user input should never be directly added into the SQL query.
     sql_query = f"SELECT * FROM posts WHERE title LIKE '%{query}%' OR content LIKE '%{query}%'"
+    # Example payload: ' OR 1=1 --
     logger.info(f"Executing search query: {sql_query}")
     cursor.execute(sql_query)
     posts = cursor.fetchall()
@@ -201,7 +198,7 @@ def search_posts(query: str, db: Session = Depends(get_db)):
     
     return [{"id": post[0], "title": post[1], "content": post[2], "user_id": post[3]} for post in posts]
 
-# 4. INSECURE DESIGN (A04:2021)
+# INSECURE DESIGN (A04:2021)
 @app.post("/password/reset", tags=["Users"])
 def reset_password(username: str, new_password: str):
     """Reset password - VULNERABLE DESIGN"""
@@ -216,7 +213,7 @@ def reset_password(username: str, new_password: str):
     
     return {"message": f"Password for {username} has been reset"}
 
-# 5. SECURITY MISCONFIGURATION (A05:2021)
+# SECURITY MISCONFIGURATION (A05:2021)
 @app.get("/debug/config", tags=["Debug"])
 def get_server_config():
     """Show server configuration - VULNERABLE CONFIGURATION"""
@@ -230,7 +227,7 @@ def get_server_config():
     }
     return config
 
-# 6. VULNERABLE AND OUTDATED COMPONENTS (A06:2021)
+# VULNERABLE AND OUTDATED COMPONENTS (A06:2021)
 @app.get("/system/check", tags=["System"])
 def run_system_check(command: str = "echo 'System check running'"):
     """Run a system command - VULNERABLE TO COMMAND INJECTION"""
@@ -242,7 +239,7 @@ def run_system_check(command: str = "echo 'System check running'"):
     except subprocess.CalledProcessError as e:
         return {"error": e.output.decode('utf-8')}
 
-# 7. IDENTIFICATION AND AUTHENTICATION FAILURES (A07:2021)
+# CRYPTOGRAPHIC FAILURES (A02:2021) - AUTHENTICATION FAILURE (A07:2021)
 @app.post("/register", tags=["Users"])
 def register_user(username: str, password: str, email: str, db: Session = Depends(get_db)):
     """Register a new user - VULNERABLE TO AUTHENTICATION FLAWS"""
@@ -257,6 +254,7 @@ def register_user(username: str, password: str, email: str, db: Session = Depend
     db.commit()
     
     return {"message": "User created successfully", "user_id": new_user.id}
+
 
 # 8. SOFTWARE AND DATA INTEGRITY FAILURES (A08:2021)
 @app.post("/import/data", tags=["Data"])
@@ -282,6 +280,7 @@ def import_data(data: str):
     except Exception as e:
         return {"error": str(e)}
 
+
 # 9. SECURITY LOGGING AND MONITORING FAILURES (A09:2021)
 @app.get("/users/{user_id}", tags=["Users"])
 def get_user(user_id: int, db: Session = Depends(get_db)):
@@ -300,6 +299,7 @@ def get_user(user_id: int, db: Session = Depends(get_db)):
         "role": user.role
     }
 
+
 # 10. SERVER-SIDE REQUEST FORGERY (SSRF) (A10:2021)
 @app.get("/fetch-resource/", tags=["External"])
 def fetch_external_resource(url: str):
@@ -317,6 +317,7 @@ def fetch_external_resource(url: str):
         }
     except Exception as e:
         return {"error": str(e)}
+
 
 # CORS configuration - VULNERABILITY: Allows all origins
 from fastapi.middleware.cors import CORSMiddleware
