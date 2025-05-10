@@ -1,15 +1,15 @@
-// ------------------------------------------------------------------
+
 // A realistic e-commerce platform demonstrating security vulnerabilities
-// ------------------------------------------------------------------
+
 
 // Global variables for authentication and state
-let authToken = null;  // Stores JWT token (INSECURE: Saved in JavaScript memory)
+let userauthToken = null;  // Stores JWT token (INSECURE: Saved in JavaScript memory)
 let currentUser = null;  // Stores the user's name
 let currentSection = 'homePage';  // Tracks the currently active section
 
-// ------------------------------------------------------------------
+
 // Page Navigation Functions
-// ------------------------------------------------------------------
+
 /**
  * Show a specific page section and hide others
  * @param {string} sectionId - ID of the section to display
@@ -80,14 +80,23 @@ document.addEventListener('DOMContentLoaded', function() {
     setupNavLink('navAdmin', 'adminPage');
     setupNavLink('navHelp', 'helpPage');
     setupNavLink('navAccount', 'accountPage');
-    
+   
+    // Fix för logo-klick som loggar ut
+const logoLink = document.querySelector('.navbar-brand');
+if (logoLink) {
+    logoLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log("Logo clicked - redirecting to home without logout");
+        showSection('homePage');
+    });
+}
     // Login buttons
     const loginNavBtn = document.getElementById('loginNavBtn');
     if (loginNavBtn) {
         loginNavBtn.addEventListener('click', function(e) {
             e.preventDefault();
             console.log("Login nav button clicked");
-            if (authToken) {
+            if (userauthToken) {
                 // If already logged in, log out
                 logoutUser();
             } else {
@@ -114,7 +123,34 @@ document.addEventListener('DOMContentLoaded', function() {
             showSection('passwordResetPage');
         });
     }
-    
+   
+    // Sign up link
+const registerLink = document.getElementById('registerLink');
+if (registerLink) {
+    registerLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log("Register link clicked");
+        showSection('registerPage');
+    });
+}
+
+// Link from register to login
+const loginFromRegisterLink = document.getElementById('loginFromRegisterLink');
+if (loginFromRegisterLink) {
+    loginFromRegisterLink.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log("Login from register link clicked");
+        showSection('loginPage');
+    });
+}
+
+
+
+
+
+
+
+
     const backToLoginLink = document.getElementById('backToLoginLink');
     if (backToLoginLink) {
         backToLoginLink.addEventListener('click', function(e) {
@@ -137,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Setup forms
     setupLoginForm();
     setupPasswordResetForm();
+    setupRegisterForm();
     setupProductSearchForm();
     
     // Initialize UI state
@@ -194,12 +231,14 @@ function updateLoginState() {
     const userDisplay = document.getElementById('userDisplay');
     const loginBtn = document.getElementById('loginNavBtn');
     
+    console.log("Updating login state:", { userauthToken, currentUser });
+    
     if (!userDisplay || !loginBtn) {
         console.error("User display or login button elements not found");
         return;
     }
     
-    if (authToken && currentUser) {
+    if (userauthToken && currentUser) {
         userDisplay.textContent = `Welcome, ${currentUser}`;
         loginBtn.textContent = 'Logout';
         loginBtn.classList.remove('btn-outline-light');
@@ -223,7 +262,7 @@ function updateProfileInfo() {
         return;
     }
     
-    if (!authToken || !currentUser) {
+    if (!userauthToken || !currentUser) {
         profileInfo.innerHTML = '<p class="text-muted">Please log in to view your profile information.</p>';
         return;
     }
@@ -258,7 +297,7 @@ function updateProfileInfo() {
  * Log out the current user
  */
 function logoutUser() {
-    authToken = null;
+    userauthToken = null;
     currentUser = null;
     updateLoginState();
     showSection('homePage');
@@ -268,6 +307,7 @@ function logoutUser() {
 // Authentication & Security Vulnerability Demonstrations
 // ------------------------------------------------------------------
 
+
 // Setup login form
 function setupLoginForm() {
     const loginForm = document.getElementById('loginForm');
@@ -275,43 +315,97 @@ function setupLoginForm() {
         loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            
+            // Rensa tidigare tillstånd först
+            userauthToken = null;
+            currentUser = null;
+            updateLoginState();
+
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value.trim();
+
+            if (!username || !password) {
+                showResult('loginResult', '<p>Please enter both username and password.</p>', true);
+                return;
+            }
+
             try {
-                // Simulate API request since we're not actually connecting to a backend
-                console.log("Login attempt:", username);
+                console.log("Attempting login with:", username, password.length);
                 
-                // Mock response for demo purposes
-                // VULNERABILITY: Basic auth using btoa (base64 encoding) - INSECURE!
-                const mockToken = btoa(username + ':' + password) + ".mockJWTtoken";
+                // Riktigt sårbart API-anrop med Basic Auth
+                const response = await fetch('http://localhost:8000/login', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Basic ' + btoa(username + ':' + password)
+                    }
+                });
+
+            
                 
-                // VULNERABILITY: Stores token in JavaScript variable without security
-                authToken = mockToken;
+                
+                // Viktig kontroll - om response inte är OK, hantera det som ett fel
+                if (!response.ok) {
+                    console.error("Login failed with status:", response.status);
+                    // Visa felmeddelande baserat på statuskod
+                    if (response.status === 401) {
+                        showResult('loginResult', '<p>Error: Invalid username or password</p>', true);
+                    } else {
+                        showResult('loginResult', `<p>Error: Server returned status ${response.status}</p>`, true);
+                    }
+                    return; // Avsluta funktionen här
+                }
+
+
+
+
+
+
+                
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    console.error("Failed to parse JSON response", jsonError);
+                    showResult('loginResult', '<p>Error: Invalid server response</p>', true);
+                    return;
+                }
+
+                // Kontrollera att data innehåller en token
+                if (!data || !data.access_token) {
+                    console.error("No token in response", data);
+                    showResult('loginResult', '<p>Error: Server did not return a valid token</p>', true);
+                    return;
+                }
+
+                // Framgångsrik inloggning
+                userauthToken = data.access_token;
                 currentUser = username;
-                
-                // Update UI state
                 updateLoginState();
-                
+
                 showResult('loginResult', `
                     <p>Successfully logged in as <strong>${username}</strong>!</p>
-                    <p>Token:</p>
-                    <div class="token-display">${mockToken}</div>
+                    <p>Token generated:</p>
+                    <div class="token-display">${data.access_token}</div>
                 `);
-                
-                // Wait a moment before redirecting to account page
+
                 setTimeout(() => {
                     showSection('accountPage');
                     updateProfileInfo();
                 }, 2000);
             } catch (error) {
+                console.error("Login error:", error);
                 showResult('loginResult', `<p>Error: ${error.message}</p>`, true);
+                
+                // Rensa eventuell token vid fel
+                userauthToken = null;
+                currentUser = null;
+                updateLoginState();
             }
         });
     } else {
         console.warn("Login form not found");
     }
 }
+
 
 // Setup password reset form
 function setupPasswordResetForm() {
@@ -356,6 +450,67 @@ function setupPasswordResetForm() {
         console.warn("Password reset form not found");
     }
 }
+
+
+
+
+// Setup register form
+function setupRegisterForm() {
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('regNewPassword').value.trim();
+            const email = document.getElementById('newEmail').value.trim();
+            
+            if (!username || !password || !email) {
+                showResult('registerResult', '<p>All fields are required.</p>', true);
+                return;
+            }
+            
+            try {
+                // VULNERABILITY: No password policy enforcement, no CSRF protection
+                const response = await fetch('http://localhost:8000/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}&email=${encodeURIComponent(email)}`
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Registration failed');
+                }
+                
+                showResult('registerResult', `
+                    <p>Account created successfully!</p>
+                    <p>You can now <a href="#" id="registerToLoginLink">login with your new account</a>.</p>
+                `);
+                
+                // Add event listener to the new link
+                const registerToLoginLink = document.getElementById('registerToLoginLink');
+                if (registerToLoginLink) {
+                    registerToLoginLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        showSection('loginPage');
+                    });
+                }
+            } catch (error) {
+                showResult('registerResult', `<p>Error: ${error.message}</p>`, true);
+            }
+        });
+    } else {
+        console.warn("Register form not found");
+    }
+}
+
+
+
+
 
 // Setup product search form (SQL Injection demonstration)
 function setupProductSearchForm() {

@@ -124,6 +124,12 @@ def create_jwt_token(data: dict):
 # Function to verify user
 def verify_user(credentials: HTTPBasicCredentials, db: Session):
     """Verifies username and password"""
+    
+    # Kontrollera att både användarnamn och lösenord faktiskt har värden
+    if not credentials.username or not credentials.password:
+        logger.warning("Empty username or password provided")
+        return None
+    
     # VULNERABILITY: SQL Injection risk - using raw SQL query
     conn = sqlite3.connect("./vulnerable_app.db")
     cursor = conn.cursor()
@@ -137,7 +143,6 @@ def verify_user(credentials: HTTPBasicCredentials, db: Session):
     if not user:
         return None
     return {"id": user[0], "username": user[1], "role": user[4]}
-
 #
 # OWASP TOP 10 VULNERABILITY DEMONSTRATIONS
 #
